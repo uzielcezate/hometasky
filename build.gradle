@@ -1,0 +1,103 @@
+plugins {
+    id "com.android.application"
+    id 'com.google.gms.google-services' // FlutterFire Configuration
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode', '1').toInteger()
+def flutterVersionName = localProperties.getProperty('flutter.versionName', '1.0.0')
+
+android {
+    namespace "com.sandware.hometasky"
+    compileSdk 34
+    ndkVersion "21.1.6352462"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        applicationId "com.sandware.hometasky"
+        minSdkVersion 21
+        targetSdkVersion 34
+        versionCode flutterVersionCode
+        versionName flutterVersionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.3.0'
+    implementation 'com.google.android.material:material:1.4.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    implementation 'androidx.recyclerview:recyclerview:1.2.0'
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
+
+    // Mapbox dependencies with exclusions
+    implementation ("com.mapbox.mapboxsdk:mapbox-android-sdk:9.6.2") {
+        exclude group: 'com.mapbox.common', module: 'common'
+        exclude group: 'com.mapbox.mapboxsdk', module: 'mapbox-android-core'
+    }
+    implementation ("com.mapbox.mapboxsdk:mapbox-android-plugin-annotation-v9:0.9.0") {
+        exclude group: 'com.mapbox.common', module: 'common'
+        exclude group: 'com.mapbox.mapboxsdk', module: 'mapbox-android-core'
+    }
+    implementation ("com.mapbox.mapboxsdk:mapbox-android-plugin-localization-v9:0.12.0") {
+        exclude group: 'com.mapbox.common', module: 'common'
+        exclude group: 'com.mapbox.mapboxsdk', module: 'mapbox-android-core'
+    }
+    implementation ('com.mapbox.mapboxsdk:mapbox-android-plugin-offline-v9:0.7.0') {
+        exclude group: 'com.mapbox.common', module: 'common'
+        exclude group: 'com.mapbox.mapboxsdk', module: 'mapbox-android-core'
+    }
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+}
+
+repositories {
+    google()
+    jcenter()
+    mavenCentral()
+    maven {
+        url 'https://api.mapbox.com/downloads/v2/releases/maven'
+        authentication {
+            basic(BasicAuthentication)
+        }
+        credentials {
+            username = "mapbox"
+            password = 'sk.eyJ1IjoidXppZWxzYW5kbzU1IiwiYSI6ImNsd3N3NGwzdjAwaW0yanE0ejE1bGk2NmUifQ.oEiszqwmPCMb5tfHRPShdw'
+        }
+    }
+}
+
+apply plugin: 'com.google.gms.google-services'

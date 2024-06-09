@@ -1,0 +1,998 @@
+Aqui te dejo los codigos para que solo los pongas de acuerdo a la aplicación
+
+EN LA DEL REGISTRO DE PROFESIONALES TE FALTO PONER LO DEL COSTO POR SU SERVICIO, 
+
+En realidad no porque serán diferentes precios es decir un albañil no va a cobra lo
+mismo en todas sus trabajos
+
+
+Por eso, pero eso lo va a tener que registrar cada profesional cuando 
+regustre su perfil no?, osea, es un campo más ´
+aparte de lo de nombre de negocio, categoria, etc?
+
+como tal el precio no, pero lo que si se me olvido registrar las 3 calificaciones
+y la general o sea que solo se agreguen en la base deja lo agrego
+
+Pasame aqui un codigo de la geolocaizacion de mapbox que lea tu geolocalzacion por fa
+
+con mapboooxxxxx
+
+dile a chat gpt que ya tengo el token y todo 
+
+GEOLOCALIZACION 
+Agrega las dependencias necesarias en tu archivo pubspec.yaml:
+
+dependencies:
+  flutter:
+    sdk: flutter
+  geolocator: ^9.0.0
+  mapbox_gl: ^0.13.0
+
+Paso 2: Configurar permisos
+Configura los permisos necesarios para acceder a la ubicación en los archivos de configuración de tu proyecto:
+
+En Android (AndroidManifest.xml):
+xml
+Copiar código
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+<application>
+    <!-- Otras configuraciones -->
+    <meta-data
+        android:name="com.mapbox.token"
+        android:value="YOUR_MAPBOX_ACCESS_TOKEN" />
+</application>
+WENO CREO ESTO NO SI DICES QUE YA TIENES EL token
+
+En iOS (Info.plist):
+xml
+Copiar código
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Your description here</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>Your description here</string>
+<key>io.flutter.embedded_views_preview</key>
+<true/>
+<key>CFBundleTypeRole</key>
+<string>Editor</string>
+<key>UIBackgroundModes</key>
+<array>
+    <string>location</string>
+</array>
+
+Paso 3: Obtener la ubicación actual
+Usa el paquete geolocator para obtener la ubicación actual del usuario. A continuación, un ejemplo de cómo hacerlo:
+
+dart
+Copiar código
+import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:mapbox_gl/mapbox_gl.dart';
+
+class MapboxScreen extends StatefulWidget {
+  @override
+  _MapboxScreenState createState() => _MapboxScreenState();
+}
+
+class _MapboxScreenState extends State<MapboxScreen> {
+  MapboxMapController? mapController;
+  LatLng? currentLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Verificar si los servicios de localización están habilitados
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Los servicios de localización están deshabilitados.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Permisos de localización denegados');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('Permisos de localización denegados permanentemente.');
+    }
+
+    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    setState(() {
+      currentLocation = LatLng(position.latitude, position.longitude);
+    });
+  }
+
+  void _onMapCreated(MapboxMapController controller) {
+    mapController = controller;
+    if (currentLocation != null) {
+      mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(currentLocation!, 14),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Mapbox Example'),
+      ),
+      body: currentLocation == null
+          ? Center(child: CircularProgressIndicator())
+          : MapboxMap(
+              accessToken: 'YOUR_MAPBOX_ACCESS_TOKEN',
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: currentLocation!,
+                zoom: 14,
+              ),
+              myLocationEnabled: true,
+              myLocationRenderMode: MyLocationRenderMode.GPS,
+            ),
+    );
+  }
+}
+Nota
+Reemplaza YOUR_MAPBOX_ACCESS_TOKEN con tu token de acceso de Mapbox.
+
+Eso me puso el chatgpt
+
+
+
+Pagina principal del cliente
+Para hacer que los datos de los perfiles de profesionales se llenen con 
+la información registrada en el código de la otra interfaz, necesitarás 
+conectar tu aplicación Flutter a Firebase y recuperar los datos desde 
+Firestore. Aquí te muestro cómo puedes hacerlo:
+
+Configurar Firebase: Asegúrate de tener Firebase configurado en tu proyecto 
+Flutter. Si no lo has hecho, sigue las instrucciones de la documentación 
+oficial de Firebase para Flutter.
+
+Obtener datos de Firestore: Modifica tu clase _InicioScreenState para obtener los datos de profesionales desde Firestore en lugar de usar una lista estática.  
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(InicioScreen());
+}
+
+class Profesional {
+  final String nombreNegocio;
+  final String categoria;
+  final String subcategoria;
+  final double cobro;
+  final double distancia;
+
+  Profesional({
+    required this.nombreNegocio,
+    required this.categoria,
+    required this.subcategoria,
+    required this.cobro,
+    required this.distancia,
+  });
+
+  // Método para crear un objeto Profesional desde un documento Firestore
+  factory Profesional.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return Profesional(
+      nombreNegocio: data['nombreNegocio'] ?? '',
+      categoria: data['categoria'] ?? '',
+      subcategoria: data['subcategoria'] ?? '',
+      cobro: (data['cobro'] as num).toDouble(),
+      distancia: (data['distancia'] as num).toDouble(),
+    );
+  }
+}
+
+class InicioScreen extends StatefulWidget {
+  @override
+  _InicioScreenState createState() => _InicioScreenState();
+}
+
+class _InicioScreenState extends State<InicioScreen> {
+  double _currentSliderValue = 3;
+  String _selectedPuntuacion = 'Mayor a menor';
+  String _selectedCobro = 'Más barato';
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primaryColor: Colors.deepPurple,
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        primaryColor: Colors.deepPurple,
+      ),
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text(''),
+          actions: [
+            Builder(
+              builder: (context) => IconButton(
+                icon: Icon(Icons.person),
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+              ),
+            ),
+          ],
+        ),
+        endDrawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundImage:
+                          AssetImage('assets/user_profile_image.jpg'),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'Uziel Sandoval',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ListTile(
+                title: Text('@uziel.sando'),
+                onTap: () {
+                  // Acción para mostrar el nombre de usuario
+                },
+              ),
+              ListTile(
+                title: Text('uziel.sando@hotmail.com'),
+                onTap: () {
+                  // Acción para mostrar el correo
+                },
+              ),
+              ListTile(
+                title: Text('Configuración'),
+                onTap: () {
+                  // Acción para abrir la pantalla de configuración
+                },
+              ),
+            ],
+          ),
+        ),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              DrawerHeader(
+                child: Text('Categorías'),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              ListTile(
+                title: Text('Construcción'),
+                onTap: () {
+                  // Acción para filtrar por categoría 1
+                },
+              ),
+              ListTile(
+                title: Text('Muebles y accesorios'),
+                onTap: () {
+                  // Acción para filtrar por categoría 2
+                },
+              ),
+              ListTile(
+                title: Text('Electrodomesticos'),
+                onTap: () {
+                  // Acción para filtrar por categoría 2
+                },
+              ),
+              ListTile(
+                title: Text('Salud y belleza'),
+                onTap: () {
+                  // Acción para filtrar por categoría 2
+                },
+              ),
+              ListTile(
+                title: Text('Limpieza'),
+                onTap: () {
+                  // Acción para filtrar por categoría 2
+                },
+              ),
+              ListTile(
+                title: Text('Niños y educación'),
+                onTap: () {
+                  // Acción para filtrar por categoría 2
+                },
+              ),
+              ListTile(
+                title: Text('Mascotas'),
+                onTap: () {
+                  // Acción para filtrar por categoría 2
+                },
+              ),
+            ],
+          ),
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        hintText: 'Buscar profesionales',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(25.0),
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.settings),
+                    onPressed: () {
+                      showSettingsBottomSheet(context);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('profesionales').snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  final List<Profesional> profesionalesFiltrados = snapshot.data!.docs
+                      .map((doc) => Profesional.fromFirestore(doc))
+                      .toList();
+                  return ListView.builder(
+                    itemCount: profesionalesFiltrados.length,
+                    itemBuilder: (context, index) {
+                      final profesional = profesionalesFiltrados[index];
+                      return Card(
+                        elevation: 5,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            radius: 25,
+                            backgroundImage: AssetImage('assets/profile_image.jpg'),
+                          ),
+                          title: Text(
+                            profesional.nombreNegocio,
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Categoria: ${profesional.categoria}'),
+                              Text('Subcategoria: ${profesional.subcategoria}'),
+                              Row(
+                                children: [
+                                  Icon(Icons.star, color: Colors.yellow),
+                                  Text('${profesional.estrellas}'),
+                                  SizedBox(width: 10),
+                                  Icon(Icons.attach_money, color: Colors.green),
+                                  Text('${profesional.cobro}'),
+                                  SizedBox(width: 10),
+                                  Text('${profesional.distancia} km'),
+                                ],
+                              ),
+                              Text('Trabajos: ${profesional.trabajos}'),
+                            ],
+                          ),
+                          trailing: Icon(Icons.arrow_forward),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home, color: Theme.of(context).primaryColor),
+              label: 'Inicio',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.mail),
+              label: 'Mensajes',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.list),
+              label: 'Contratos',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void showSettingsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: 250.0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ListTile(
+                title: Text('Radio de distancia'),
+                subtitle: Slider(
+                  min: 1,
+                  max: 5,
+                  divisions: 4,
+                  onChanged: (double value) {
+                    setState(() {
+                      _currentSliderValue = value;
+                    });
+                  },
+                  value: _currentSliderValue, // Valor inicial
+                ),
+                trailing: Text('${_currentSliderValue.toInt()} km'), // Mostrar el número de km seleccionado
+              ),
+              ListTile(
+                title: Text('Puntuación'),
+                trailing: DropdownButton<String>(
+                  value: _selectedPuntuacion,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedPuntuacion = newValue!;
+                      // Aquí puedes filtrar los profesionales según la opción seleccionada
+                    });
+                  },
+                  items: <String>['Mayor a menor', 'Menor a mayor']
+                      .map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ),
+              ListTile(
+                title: Text('Cobro'),
+                trailing: DropdownButton<String>(
+                  value: _selectedCobro,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedCobro = newValue!;
+                      // Aquí puedes filtrar los profesionales según la opción seleccionada
+                    });
+                  },
+                  items: <String>['Más barato', 'Más caro']
+                      .map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ),
+              SizedBox(height: 20.0),
+              ElevatedButton(
+                onPressed: () {
+                  // Acciones a realizar cuando se presiona el botón de filtrar
+                },
+                child: Text('Aplicar filtros'),
+                style: ElevatedButton.styleFrom(
+                  primary: Theme.of(context).primaryColor,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+Tome base del codigo que tienes en el Github donde venian la lista de profesionales, pero ahora en vez de que en cada lista venga el texto que le habias puesto a cada variable, le pondra los datos que registro el profesional 
+Ya nadamas prueba si respeto eso y pues en las variables
+
+vale
+
+Aqui va un codigo para cuando el cliente seleccione un perfil de la lista, se le despliegue una pantalla con lo que registro el profesional
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class ProfesionalProfileScreen extends StatefulWidget {
+  final Profesional profesional;
+
+  ProfesionalProfileScreen({required this.profesional});
+
+  @override
+  _ProfesionalProfileScreenState createState() => _ProfesionalProfileScreenState();
+}
+
+class _ProfesionalProfileScreenState extends State<ProfesionalProfileScreen> {
+  final TextEditingController _comentarioController = TextEditingController();
+  double _rating = 0;
+
+  void _submitRating() async {
+    if (_rating > 0 && _comentarioController.text.isNotEmpty) {
+      await FirebaseFirestore.instance.collection('ratings').add({
+        'profesionalId': widget.profesional.nombreNegocio,
+        'rating': _rating,
+        'comentario': _comentarioController.text,
+        'timestamp': Timestamp.now(),
+      });
+
+      // Limpiar campos después de enviar
+      setState(() {
+        _rating = 0;
+        _comentarioController.clear();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Calificación y comentario enviados')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.profesional.nombreNegocio),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.profesional.nombreNegocio,
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Text('Categoria: ${widget.profesional.categoria}'),
+            Text('Subcategoria: ${widget.profesional.subcategoria}'),
+            SizedBox(height: 10),
+            Text('Estrellas: ${widget.profesional.estrellas}'),
+            Text('Cobro: \$${widget.profesional.cobro}'),
+            Text('Distancia: ${widget.profesional.distancia} km'),
+            Text('Trabajos: ${widget.profesional.trabajos}'),
+            SizedBox(height: 20),
+            Text('Califica este servicio:'),
+            SizedBox(height: 10),
+            Row(
+              children: List.generate(5, (index) {
+                return IconButton(
+                  icon: Icon(
+                    index < _rating ? Icons.star : Icons.star_border,
+                    color: Colors.yellow,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _rating = index + 1.0;
+                    });
+                  },
+                );
+              }),
+            ),
+            TextField(
+              controller: _comentarioController,
+              decoration: InputDecoration(labelText: 'Comentario'),
+            ),
+            SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _submitRating,
+              child: Text('Enviar'),
+            ),
+            SizedBox(height: 20),
+            Text('Comentarios anteriores:'),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('ratings')
+                    .where('profesionalId', isEqualTo: widget.profesional.nombreNegocio)
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  final comentarios = snapshot.data!.docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return ListTile(
+                      leading: Icon(Icons.star, color: Colors.yellow),
+                      title: Text(data['rating'].toString()),
+                      subtitle: Text(data['comentario']),
+                    );
+                  }).toList();
+
+                  return ListView(children: comentarios);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Y este codigo es el que ya te mande, solo que aqui tiene la función de que si el cliente le aprieta a un servicio de la lista, se le abre la pantalla
+// En tu clase InicioScreen
+
+// Dentro de return Profesional(
+      nombreNegocio: data['nombreNegocio'] ?? '',
+      categoria: data['categoria'] ?? '',
+      subcategoria: data['subcategoria'] ?? '',
+      cobro: (data['cobro'] as num).toDouble(),
+      distancia: (data['distancia'] as num).toDouble(),
+    );//
+return ListTile(
+  leading: CircleAvatar(
+    radius: 25,
+    backgroundImage: AssetImage('assets/profile_image.jpg'),
+  ),
+  title: Text(
+    profesional.nombreNegocio,
+    style: TextStyle(fontWeight: FontWeight.bold),
+  ),
+  subtitle: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Categoria: ${profesional.categoria}'),
+      Text('Subcategoria: ${profesional.subcategoria}'),
+      Row(
+        children: [
+          Icon(Icons.star, color: Colors.yellow),
+          Text('${profesional.estrellas}'),
+          SizedBox(width: 10),
+          Icon(Icons.attach_money, color: Colors.green),
+          Text('${profesional.cobro}'),
+          SizedBox(width: 10),
+          Text('${profesional.distancia} km'),
+        ],
+      ),
+      Text('Trabajos: ${profesional.trabajos}'),
+    ],
+  ),
+  trailing: Icon(Icons.arrow_forward),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfesionalProfileScreen(profesional: profesional),
+      ),
+    );
+  },
+);
+
+Ahora una pantalla para guardar comentarios y estrellitas de Calificación
+
+Cuando un cliente califica y comenta, estos datos se guardan en la colección ratings en Firestore. Cada documento en esta colección debe tener al menos los siguientes campos:
+
+profesionalId: El ID o nombre del profesional.
+rating: La calificación (número de estrellas).
+comentario: El comentario del cliente.
+timestamp: Marca de tiempo del comentario.
+
+En la pantalla de perfil del profesional, usa un StreamBuilder para escuchar cambios en la colección ratings y mostrar los comentarios en tiempo real.
+
+FUNCIÓN PARA QUE ELIMINE A LOS PERFILES DE PROFESIONALES QUE TENGAN 5 CALIFICACIONES MALAS Y 5 RESEÑAS MALAS
+class ProfessionalDetailScreen extends StatefulWidget {
+  final Profesional profesional;
+
+  ProfessionalDetailScreen({required this.profesional});
+
+  @override
+  _ProfessionalDetailScreenState createState() => _ProfessionalDetailScreenState();
+}
+
+class _ProfessionalDetailScreenState extends State<ProfessionalDetailScreen> {
+  final TextEditingController _commentController = TextEditingController();
+  int _rating = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.profesional.nombreNegocio),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Calificar:'),
+            Row(
+              children: List.generate(5, (index) {
+                return IconButton(
+                  icon: Icon(
+                    index < _rating ? Icons.star : Icons.star_border,
+                  ),
+                  color: Colors.yellow,
+                  onPressed: () {
+                    setState(() {
+                      _rating = index + 1;
+                    });
+                  },
+                );
+              }),
+            ),
+            TextField(
+              controller: _commentController,
+              decoration: InputDecoration(labelText: 'Comentario'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _submitRatingAndComment();
+              },
+              child: Text('Enviar'),
+            ),
+            Expanded(
+              child: ListView(
+                children: widget.profesional.comentarios
+                    .map((comment) => ListTile(
+                          title: Text(comment),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _submitRatingAndComment() {
+    if (_rating > 0 && _commentController.text.isNotEmpty) {
+      FirebaseFirestore.instance
+          .collection('profesionales')
+          .doc(widget.profesional.nombreNegocio)
+          .update({
+        'calificaciones': FieldValue.arrayUnion([_rating]),
+        'comentarios': FieldValue.arrayUnion([_commentController.text]),
+      }).then((_) {
+        setState(() {
+          widget.profesional.calificaciones.add(_rating);
+          widget.profesional.comentarios.add(_commentController.text);
+          _commentController.clear();
+          _rating = 0;
+        });
+        _checkForRemoval(widget.profesional);
+      });
+    }
+  }
+
+  void _checkForRemoval(Profesional profesional) {
+    int oneStarCount = profesional.calificaciones.where((rating) => rating == 1).length;
+    int negativeCommentsCount = profesional.comentarios.where((comment) => comment.contains('negativo')).length;
+
+    if (oneStarCount >= 5 && negativeCommentsCount >= 5) {
+      FirebaseFirestore.instance
+          .collection('profesionales')
+          .doc(profesional.nombreNegocio)
+          .delete()
+          .then((_) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Perfil eliminado por malas calificaciones.'),
+        ));
+        Navigator.of(context).pop();
+      });
+    }
+  }
+}
+
+CODIGO PARA CREAR CHAT EN EL PERFIL DEL PROFESIONAL
+dart
+Copiar código
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class ChatScreen extends StatefulWidget {
+  final String professionalId;
+
+  ChatScreen({required this.professionalId});
+
+  @override
+  _ChatScreenState createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final TextEditingController _messageController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Chat'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('chats')
+                  .doc(widget.professionalId)
+                  .collection('messages')
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                final messages = snapshot.data!.docs;
+
+                return ListView.builder(
+                  reverse: true,
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final messageText = message['text'];
+                    final messageSender = message['sender'];
+
+                    return ListTile(
+                      title: Text(messageSender),
+                      subtitle: Text(messageText),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(hintText: 'Escribe un mensaje...'),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.send),
+                  onPressed: _sendMessage,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _sendMessage() async {
+    if (_messageController.text.isEmpty) return;
+
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore.collection('chats').doc(widget.professionalId).collection('messages').add({
+      'text': _messageController.text,
+      'sender': user.email,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    _messageController.clear();
+  }
+}
+
+AHORA PARA ABRIR LOS CHATS Y VER LOS Mensajes
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+void main() {
+  runApp(MainApp());
+}
+
+class MainApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primaryColor: Colors.deepPurple,
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        primaryColor: Colors.deepPurple,
+      ),
+      home: MainScreen(),
+    );
+  }
+}
+
+class MainScreen extends StatefulWidget {
+  @override
+  _MainScreenState createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Chats'),
+      ),
+      body: StreamBuilder<User?>(
+        stream: _auth.authStateChanges(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          final user = snapshot.data!;
+          return StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('chats')
+                .where('professionalId', isEqualTo: user.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              final chats = snapshot.data!.docs;
+
+              return ListView.builder(
+                itemCount: chats.length,
+                itemBuilder: (context, index) {
+                  final chat = chats[index];
+                  final chatId = chat.id;
+
+                  return ListTile(
+                    title: Text('Chat con cliente ${index + 1}'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(professionalId: chatId),
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+
